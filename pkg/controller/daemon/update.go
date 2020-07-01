@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 
 	apps "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -367,14 +367,15 @@ func (dsc *DaemonSetsController) getAllDaemonSetPods(ds *apps.DaemonSet, nodeToD
 	var newPods []*v1.Pod
 	var oldPods []*v1.Pod
 
+	// If the returned error is not nil we have a parse error.
+	// The controller handles this via the hash.
+	generation, err := util.GetTemplateGeneration(ds)
+	if err != nil {
+		generation = nil
+	}
+
 	for _, pods := range nodeToDaemonPods {
 		for _, pod := range pods {
-			// If the returned error is not nil we have a parse error.
-			// The controller handles this via the hash.
-			generation, err := util.GetTemplateGeneration(ds)
-			if err != nil {
-				generation = nil
-			}
 			if util.IsPodUpdated(pod, hash, generation) {
 				newPods = append(newPods, pod)
 			} else {
